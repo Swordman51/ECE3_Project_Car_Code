@@ -2,11 +2,15 @@
 
 //Global Variables
 
+uint16_t sensorValues[8];
+
   int leftBaseSpeed = 50;
   int rightBaseSpeed = 50;
 
-  int min[] = {779,	687, 596,	664, 619,	687, 642,	756}; //change if recalibrated
-  int max[] = {1721, 1813, 1904, 1836, 1881, 1813, 1858, 1744};  //change if recalibrated
+  float maxError = 2483.675;
+
+  float min[] = {779,	687, 596,	664, 619,	687, 642,	756}; //change if recalibrated
+  float max[] = {1721, 1813, 1904, 1836, 1881, 1813, 1858, 1744};  //change if recalibrated
   int weights[] = {-15, -14, -12, -8, 8, 12, 14, 15};
 
   //No Sleep Pins
@@ -32,7 +36,7 @@ const unsigned long enc_bin_len = 50; // 50 ms bins
 
 
 void setup() {
-  uint16_t sensorValues[8];
+  
 
   //initialize left pins
   pinMode(nSlpLeft, OUTPUT);
@@ -58,17 +62,49 @@ void setup() {
 }
 
 void loop() {
-  //ECE3_read_IR(sensorValues);
+  ECE3_read_IR(sensorValues);
   
-  analogWrite(PWMLeft, leftBaseSpeed);
-  analogWrite(PWMRight, rightBaseSpeed);
+  // analogWrite(PWMLeft, leftBaseSpeed);
+  // analogWrite(PWMRight, rightBaseSpeed);
+
+
+  float error = 0;
+
+  for (int i = 0; i < 8; i++) {
+    if (sensorValues[i] < min[i]) {
+      error += 0;
+    } else {
+      error += weights[i] * (1000.0 * (sensorValues[i] - min[i]) / (max[i]));
+    }
+      
+  }
+  error = error / 8;
+  
+  //Serial.println(error);
+  float KpLeft = -0.0125;
 
 
 
-  int sum = 0;
+  int leftSpeed;
+  int rightSpeed;
+  if (leftBaseSpeed + (KpLeft * error) < 0) {
+    leftSpeed = 0;
+  } else {
+    leftSpeed = leftBaseSpeed + (KpLeft * error);
+  }
 
-  for (i = 0; i < 7; i++) {
-    if (sensorValues[i] < min)
-      min = sensorValues[i];
-    sum += Weight[i] * ((sensorValues[i] - min[i]) / (max[i] - min[i])) * 1000;
+  if (rightBaseSpeed - (KpLeft * error) < 0) {
+    rightSpeed = 0;
+  } else {
+    rightSpeed = rightBaseSpeed - (KpLeft * error);
+  }
+
+  //Serial.println(leftSpeed);
+  //Serial.println(rightSpeed);
+
+  analogWrite(PWMLeft, leftSpeed);
+  analogWrite(PWMRight, rightSpeed);
+
+
+
 }
