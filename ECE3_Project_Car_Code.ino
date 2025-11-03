@@ -65,4 +65,10 @@ void loop() {
 
 
 
+  int sum = 0;
+
+  for (i = 0; i < 7; i++) {
+    if (sensorValues[i] < min)
+      min = sensorValues[i];
+    sum += Weight[i] * ((sensorValues[i] - min[i]) / (max[i] - min[i])) * 1000;
 }
