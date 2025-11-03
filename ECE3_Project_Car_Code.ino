@@ -14,9 +14,19 @@ void setup() {
   //Direction Pins
   int Dir_L = 29;
   int Dir_R = 30;
+
+  uint16_t sensorValues[8];
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  ECE3_read_IR(sensorValues);
+  
+  analog.Write(nSlpLeft, HIGH);
+  analog.Write(nSlpRight, HIGH);
+  analog.Write(PWMLeft, HIGH);
+  analog.Write(PWMRight, HIGH);
+
+  analog.Write(Dir_L, HIGH);
+  analog.Write(Dir_R, HIGH);
 
 }
