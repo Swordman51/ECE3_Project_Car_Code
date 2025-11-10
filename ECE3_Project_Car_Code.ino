@@ -1,11 +1,14 @@
 #include <ECE3.h> // Used for encoder functionality
 
+
+#define	IMPLEMENTATION	LIFO
+
 //Global Variables
 
 uint16_t sensorValues[8];
 
-  int leftBaseSpeed = 50;
-  int rightBaseSpeed = 50;
+  int leftBaseSpeed = 20;
+  int rightBaseSpeed = 20;
 
   float maxError = 2483.675;
   float prevError = 0.0;
@@ -25,6 +28,10 @@ uint16_t sensorValues[8];
   //Direction Pins
   int Dir_L = 29;
   int Dir_R = 30;
+
+  //Phantom Crosspiece values
+  int prevCounts[4];
+  int currentCountIndex = 0;
 
   // Encoder Variables
 long enc_bin_cnt;
@@ -95,20 +102,27 @@ void loop() {
   float PIDsum = (Kp * error) + (Kd * (error - prevError));
 
   // Crosspiece + Phantom crosspiece
-   int count = 0;
- 
-  for (int i = 0; i < 8; i++) {
-    if (sensorValues[i] > 2400) {
-      count++;
-    } else {
-      break;
+  
+
+
+  if (checkCrossPiece() == 8) {
+    bool crossencountered = true;
+    for (int i = 0; i < 4; i++) {
+      if (prevCounts[i] != 8) {
+        crossencountered = false;
+        break;
+      }
+    } 
+    if (crossencountered){
+      //stop for now
+      analogWrite(PWMLeft, 0);
+      analogWrite(PWMRight, 0);
+      delay(3000); //get rid
+      return;
     }
   }
 
-  if (count == 8) {
-    analogWrite(PWMLeft, 0);
-    analogWrite(PWMRight, 0);
-  }
+
 
   if (leftBaseSpeed + PIDsum < 0) {
     leftSpeed = 0;
@@ -136,4 +150,25 @@ int average() {
   int getR = getEncoderCount_right();
     Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
   return ((getEncoderCount_left() + getEncoderCount_right()) / 2);
+}
+
+int checkCrossPiece() {
+  int count = 0;
+  for (int i = 0; i < 8; i++) {
+    if (sensorValues[i] >= 2500) {
+      count++;
+    } else {
+      break;
+    }
+  }
+
+  if (currentCountIndex == 4) {
+    currentCountIndex = 0;
+    prevCounts[currentCountIndex] = count;
+    currentCountIndex++;
+  }
+
+  return count;
+
+
 }
