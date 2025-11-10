@@ -63,7 +63,7 @@ void setup() {
   digitalWrite(Dir_R, LOW);
 
   Serial.begin(19200);
-}
+}  
 
 void loop() {
   ECE3_read_IR(sensorValues);
@@ -94,6 +94,22 @@ void loop() {
   //Calculate PID
   float PIDsum = (Kp * error) + (Kd * (error - prevError));
 
+  // Crosspiece + Phantom crosspiece
+   int count = 0;
+ 
+  for (int i = 0; i < 8; i++) {
+    if (sensorValues[i] > 2400) {
+      count++;
+    } else {
+      break;
+    }
+  }
+
+  if (count == 8) {
+    analogWrite(PWMLeft, 0);
+    analogWrite(PWMRight, 0);
+  }
+
   if (leftBaseSpeed + PIDsum < 0) {
     leftSpeed = 0;
   } else {
@@ -105,7 +121,7 @@ void loop() {
   } else {
     rightSpeed = rightBaseSpeed - PIDsum;
   }
-
+  
   //Serial.println(leftSpeed);
   //Serial.println(rightSpeed);
   average();
