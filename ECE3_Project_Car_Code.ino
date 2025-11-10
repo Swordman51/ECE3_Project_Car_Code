@@ -8,6 +8,7 @@ uint16_t sensorValues[8];
   int rightBaseSpeed = 50;
 
   float maxError = 2483.675;
+  float prevError = 0.0;
 
   float min[] = {779,	687, 596,	664, 619,	687, 642,	756}; //change if recalibrated
   float max[] = {1721, 1813, 1904, 1836, 1881, 1813, 1858, 1744};  //change if recalibrated
@@ -54,6 +55,9 @@ void setup() {
 
   ECE3_Init();
 
+  //reseting Encoder Counts
+  resetEncoderCount_left();
+  resetEncoderCount_right();
 
   digitalWrite(nSlpRight, HIGH);  
   digitalWrite(Dir_R, LOW);
@@ -81,30 +85,39 @@ void loop() {
   error = error / 8;
   
   //Serial.println(error);
-  float KpLeft = -0.0125;
-
-
+  float Kp = -0.0125;
+  float Kd = -0.0125;
 
   int leftSpeed;
   int rightSpeed;
-  if (leftBaseSpeed + (KpLeft * error) < 0) {
+
+  //Calculate PID
+  float PIDsum = (Kp * error) + (Kd * (error - prevError));
+
+  if (leftBaseSpeed + PIDsum < 0) {
     leftSpeed = 0;
   } else {
-    leftSpeed = leftBaseSpeed + (KpLeft * error);
+    leftSpeed = leftBaseSpeed + PIDsum;
   }
 
-  if (rightBaseSpeed - (KpLeft * error) < 0) {
+  if (rightBaseSpeed - PIDsum < 0) {
     rightSpeed = 0;
   } else {
-    rightSpeed = rightBaseSpeed - (KpLeft * error);
+    rightSpeed = rightBaseSpeed - PIDsum;
   }
 
   //Serial.println(leftSpeed);
   //Serial.println(rightSpeed);
-
+  average();
   analogWrite(PWMLeft, leftSpeed);
   analogWrite(PWMRight, rightSpeed);
 
+  prevError = error;
+}
 
-
+int average() {
+  int getL = getEncoderCount_left();
+  int getR = getEncoderCount_right();
+    Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
+  return ((getEncoderCount_left() + getEncoderCount_right()) / 2);
 }
