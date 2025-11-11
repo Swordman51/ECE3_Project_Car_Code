@@ -44,7 +44,6 @@ const unsigned long enc_bin_len = 50; // 50 ms bins
 
 
 void setup() {
-  
 
   //initialize left pins
   pinMode(nSlpLeft, OUTPUT);
@@ -75,10 +74,6 @@ void setup() {
 void loop() {
   ECE3_read_IR(sensorValues);
   
-  // analogWrite(PWMLeft, leftBaseSpeed);
-  // analogWrite(PWMRight, rightBaseSpeed);
-
-
   float error = 0;
 
   for (int i = 0; i < 8; i++) {
@@ -87,7 +82,6 @@ void loop() {
     } else {
       error += weights[i] * (1000.0 * (sensorValues[i] - min[i]) / (max[i]));
     }
-      
   }
   error = error / 8;
   
@@ -102,8 +96,6 @@ void loop() {
   float PIDsum = (Kp * error) + (Kd * (error - prevError));
 
   // Crosspiece + Phantom crosspiece
-  
-
 
   if (checkCrossPiece() == 8) {
     bool crossencountered = true;
@@ -122,8 +114,6 @@ void loop() {
     }
   }
 
-
-
   if (leftBaseSpeed + PIDsum < 0) {
     leftSpeed = 0;
   } else {
@@ -135,13 +125,11 @@ void loop() {
   } else {
     rightSpeed = rightBaseSpeed - PIDsum;
   }
-  
   //Serial.println(leftSpeed);
   //Serial.println(rightSpeed);
   average();
   analogWrite(PWMLeft, leftSpeed);
   analogWrite(PWMRight, rightSpeed);
-
   prevError = error;
 }
 
@@ -167,8 +155,5 @@ int checkCrossPiece() {
     prevCounts[currentCountIndex] = count;
     currentCountIndex++;
   }
-
   return count;
-
-
 }
