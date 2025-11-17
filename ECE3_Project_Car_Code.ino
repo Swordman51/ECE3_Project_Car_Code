@@ -15,7 +15,7 @@ uint16_t sensorValues[8];
 
   float min[] = {779,	687, 596,	664, 619,	687, 642,	756}; //change if recalibrated
   float max[] = {1721, 1813, 1904, 1836, 1881, 1813, 1858, 1744};  //change if recalibrated
-  int weights[] = {-15, -14, -12, -8, 8, 10, 13, 15};
+  int weights[] = {-15, -14, -12, -8, 8, 9, 12, 15};
   //int weights[] = {-15, -14, -12, -8, 8, 12, 14, 15};
 
   //No Sleep Pins
@@ -96,12 +96,12 @@ void loop() {
     } else {
       error += weights[i] * (1000.0 * (sensorValues[i] - min[i]) / (max[i]));
     }
-    //Serial.print(sensorValues[i]);
-    //Serial.print("    ");
+    // Serial.print(sensorValues[i]);
+    // Serial.print("    ");
    
 
   }
-  //Serial.print("\n");
+  // Serial.print("\n");
   error = error / 8;
   
   //Serial.println(error);
@@ -116,7 +116,7 @@ void loop() {
 
   // Crosspiece + Phantom crosspiece
 
-  if (count >= 5 && countBeforeCrossPieceCheck >= 500) {
+  if (count >= 5 && prevCount >= 5 && countBeforeCrossPieceCheck >= 500) {
     bool crossencountered = true;
     // if (prevCount != 8) {
     //   crossencountered = false;
@@ -186,11 +186,11 @@ void turnCar() {
   int getR = getEncoderCount_right();
 
   while (getL > -500 && getR < 531) {
-    analogWrite(PWMLeft, 20);
-    analogWrite(PWMRight, 20);
+    analogWrite(PWMLeft, 25);
+    analogWrite(PWMRight, 25);
     getL = getEncoderCount_left();
     getR = getEncoderCount_right();
-    Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
+    // Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
     average();
   }
 
