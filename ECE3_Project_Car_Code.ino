@@ -6,7 +6,7 @@
 //Global Variables
 
 uint16_t sensorValues[8];
-
+  int countBeforeCrossPieceCheck = 0;
   int leftBaseSpeed = 20;
   int rightBaseSpeed = 20;
 
@@ -15,7 +15,8 @@ uint16_t sensorValues[8];
 
   float min[] = {779,	687, 596,	664, 619,	687, 642,	756}; //change if recalibrated
   float max[] = {1721, 1813, 1904, 1836, 1881, 1813, 1858, 1744};  //change if recalibrated
-  int weights[] = {-15, -14, -12, -8, 8, 12, 14, 15};
+  int weights[] = {-15, -14, -12, -8, 8, 10, 13, 15};
+  //int weights[] = {-15, -14, -12, -8, 8, 12, 14, 15};
 
   //No Sleep Pins
   int nSlpLeft = 31;
@@ -30,7 +31,7 @@ uint16_t sensorValues[8];
   int Dir_R = 30;
 
   //Phantom Crosspiece values
-  int prevCount;
+  int prevCount = 0;
   int currentCountIndex = 0;
 
   // Encoder Variables
@@ -63,6 +64,7 @@ void setup() {
   digitalWrite(Dir_R, LOW);
 
   ECE3_Init();
+  delay(2000);
 
   //reseting Encoder Counts
   resetEncoderCount_left();
@@ -74,11 +76,12 @@ void setup() {
 }  
 
 void loop() {
+  countBeforeCrossPieceCheck++;
   
   ECE3_read_IR(sensorValues);
   
   int count = 0;
-  for (int i = 0; i < 8; i++) {
+  for (int i = 1; i < 7; i++) {
     if (sensorValues[i] >= 2000) {
       count++;
     }
@@ -113,7 +116,7 @@ void loop() {
 
   // Crosspiece + Phantom crosspiece
 
-  if (count >= 6) {
+  if (count >= 5 && countBeforeCrossPieceCheck >= 500) {
     bool crossencountered = true;
     // if (prevCount != 8) {
     //   crossencountered = false;
@@ -124,6 +127,7 @@ void loop() {
       //if (crossPieceCount == 1) {
         turnCar();
         reset();
+        crossencountered = false;
       //}
 
     }
@@ -142,10 +146,12 @@ void loop() {
   }
   //Serial.println(leftSpeed);
   //Serial.println(rightSpeed);
+  //hard code rotating around donut
   //average();
   analogWrite(PWMLeft, leftSpeed);
   analogWrite(PWMRight, rightSpeed);
   prevError = error;
+  prevCount = count;
 }
 
 int average() {
@@ -174,17 +180,21 @@ void turnCar() {
   resetEncoderCount_right();
 
   //switch direction
-  digitalWrite(Dir_R, HIGH);
+  digitalWrite(Dir_L, HIGH);
 
   int getL = getEncoderCount_left();
   int getR = getEncoderCount_right();
 
-  while (getL < 772 && getR < -700) {
+  while (getL > -500 && getR < 531) {
     analogWrite(PWMLeft, 20);
     analogWrite(PWMRight, 20);
+    getL = getEncoderCount_left();
+    getR = getEncoderCount_right();
+    Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
+    average();
   }
 
-  delay(10000);
+  //delay(10000);
 
   // while(true) {
   //   analogWrite(PWMLeft, 20);
