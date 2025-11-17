@@ -74,8 +74,17 @@ void setup() {
 }  
 
 void loop() {
+  
   ECE3_read_IR(sensorValues);
   
+  int count = 0;
+  for (int i = 0; i < 8; i++) {
+    if (sensorValues[i] >= 2000) {
+      count++;
+    }
+  }
+  
+
   float error = 0;
 
   for (int i = 0; i < 8; i++) {
@@ -84,7 +93,12 @@ void loop() {
     } else {
       error += weights[i] * (1000.0 * (sensorValues[i] - min[i]) / (max[i]));
     }
+    //Serial.print(sensorValues[i]);
+    //Serial.print("    ");
+   
+
   }
+  //Serial.print("\n");
   error = error / 8;
   
   //Serial.println(error);
@@ -99,7 +113,7 @@ void loop() {
 
   // Crosspiece + Phantom crosspiece
 
-  if (checkCrossPiece() == 8) {
+  if (count >= 6) {
     bool crossencountered = true;
     // if (prevCount != 8) {
     //   crossencountered = false;
@@ -109,9 +123,9 @@ void loop() {
       //Serial.print(crossPieceCount);
       //if (crossPieceCount == 1) {
         turnCar();
+        reset();
       //}
 
-      return;
     }
   }
 
@@ -141,20 +155,12 @@ int average() {
   return ((getEncoderCount_left() + getEncoderCount_right()) / 2);
 }
 
-int checkCrossPiece() {
-  int count = 0;
-  for (int i = 0; i < 8; i++) {
-    if (sensorValues[i] >= 2000) {
-      count++;
-    } else {
-      break;
-    }
-  }
-  
-  //prevCount = count;
-  //Serial.print(prevCount);Serial.print("\t");Serial.print(count);Serial.print("\n");
-
-  return count;
+void reset() {
+  //set pins inital Direction, CHANGE AS NEEDED
+  digitalWrite(nSlpLeft, HIGH);
+  digitalWrite(Dir_L, LOW);
+  digitalWrite(nSlpRight, HIGH);  
+  digitalWrite(Dir_R, LOW);
 }
 
 void turnCar() {
@@ -170,11 +176,27 @@ void turnCar() {
   //switch direction
   digitalWrite(Dir_R, HIGH);
 
-  while(true) {
-  analogWrite(PWMLeft, 20);
-  analogWrite(PWMRight, 20);
-  average();
+  int getL = getEncoderCount_left();
+  int getR = getEncoderCount_right();
+
+  while (getL < 772 && getR < -700) {
+    analogWrite(PWMLeft, 20);
+    analogWrite(PWMRight, 20);
   }
+
+  delay(10000);
+
+  // while(true) {
+  //   analogWrite(PWMLeft, 20);
+  //   analogWrite(PWMRight, 20);
+  //   average();
+  // }
+  //772 -700 is one full turn
+
+  
+
+
+  
   
 
   
