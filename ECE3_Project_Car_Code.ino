@@ -30,7 +30,7 @@ uint16_t sensorValues[8];
   int Dir_R = 30;
 
   //Phantom Crosspiece values
-  int prevCounts[4];
+  int prevCount;
   int currentCountIndex = 0;
 
   // Encoder Variables
@@ -42,6 +42,7 @@ const unsigned long enc_bin_len = 50; // 50 ms bins
     // this period a bin when refering to the encoder. The number 
     // encoder counts per bin is a proportional to speed.
 
+int crossPieceCount = 0;
 
 void setup() {
 
@@ -58,6 +59,8 @@ void setup() {
   //set pins inital Direction, CHANGE AS NEEDED
   digitalWrite(nSlpLeft, HIGH);
   digitalWrite(Dir_L, LOW);
+  digitalWrite(nSlpRight, HIGH);  
+  digitalWrite(Dir_R, LOW);
 
   ECE3_Init();
 
@@ -65,8 +68,7 @@ void setup() {
   resetEncoderCount_left();
   resetEncoderCount_right();
 
-  digitalWrite(nSlpRight, HIGH);  
-  digitalWrite(Dir_R, LOW);
+
 
   Serial.begin(19200);
 }  
@@ -99,17 +101,16 @@ void loop() {
 
   if (checkCrossPiece() == 8) {
     bool crossencountered = true;
-    for (int i = 0; i < 4; i++) {
-      if (prevCounts[i] != 8) {
-        crossencountered = false;
-        break;
-      }
-    } 
+    // if (prevCount != 8) {
+    //   crossencountered = false;
+    // } 
     if (crossencountered){
-      //stop for now
-      analogWrite(PWMLeft, 0);
-      analogWrite(PWMRight, 0);
-      delay(3000); //get rid
+      crossPieceCount++;
+      //Serial.print(crossPieceCount);
+      //if (crossPieceCount == 1) {
+        turnCar();
+      //}
+
       return;
     }
   }
@@ -127,7 +128,7 @@ void loop() {
   }
   //Serial.println(leftSpeed);
   //Serial.println(rightSpeed);
-  average();
+  //average();
   analogWrite(PWMLeft, leftSpeed);
   analogWrite(PWMRight, rightSpeed);
   prevError = error;
@@ -143,17 +144,38 @@ int average() {
 int checkCrossPiece() {
   int count = 0;
   for (int i = 0; i < 8; i++) {
-    if (sensorValues[i] >= 2500) {
+    if (sensorValues[i] >= 2000) {
       count++;
     } else {
       break;
     }
   }
+  
+  //prevCount = count;
+  //Serial.print(prevCount);Serial.print("\t");Serial.print(count);Serial.print("\n");
 
-  if (currentCountIndex == 4) {
-    currentCountIndex = 0;
-    prevCounts[currentCountIndex] = count;
-    currentCountIndex++;
-  }
   return count;
+}
+
+void turnCar() {
+  //stop for now
+  analogWrite(PWMLeft, 0);
+  analogWrite(PWMRight, 0);
+  delay(1000); //get rid
+
+  //reseting Encoder Counts
+  resetEncoderCount_left();
+  resetEncoderCount_right();
+
+  //switch direction
+  digitalWrite(Dir_R, HIGH);
+
+  while(true) {
+  analogWrite(PWMLeft, 20);
+  analogWrite(PWMRight, 20);
+  average();
+  }
+  
+
+  
 }
