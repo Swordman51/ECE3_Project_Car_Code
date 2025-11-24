@@ -7,6 +7,7 @@
 
 uint16_t sensorValues[8];
   int countBeforeCrossPieceCheck = 0;
+  int countBeforeSwitchWeight = 0;
   int leftBaseSpeed = 20;
   int rightBaseSpeed = 20;
 
@@ -16,7 +17,11 @@ uint16_t sensorValues[8];
   float min[] = {779,	687, 596,	664, 619,	687, 642,	756}; //change if recalibrated
   float max[] = {1721, 1813, 1904, 1836, 1881, 1813, 1858, 1744};  //change if recalibrated
   int weights[] = {-15, -14, -12, -8, 8, 9, 12, 15};
+  int weights1[] = {0, 1, -12, -8, 8, 9, 12, 15}; //decreased right side weighting
+  int weights2[] = {0, 0, -9, -8, 8, 9, 12, 15}; //decreased right side weighting
   //int weights[] = {-15, -14, -12, -8, 8, 12, 14, 15};
+
+  int* weightingUsed = weights;
 
   //No Sleep Pins
   int nSlpLeft = 31;
@@ -44,6 +49,7 @@ const unsigned long enc_bin_len = 50; // 50 ms bins
     // encoder counts per bin is a proportional to speed.
 
 int crossPieceCount = 0;
+
 
 void setup() {
 
@@ -76,17 +82,20 @@ void setup() {
 }  
 
 void loop() {
+  bool crossencountered = false;
+  if (crossPieceCount == 1) {
+    countBeforeSwitchWeight++;
+    if (countBeforeSwitchWeight >= 400) {
+      weightingUsed = weights1; 
+      digitalWrite(75, LOW);
+    }
+  }
+
   countBeforeCrossPieceCheck++;
   
   ECE3_read_IR(sensorValues);
   
-  int count = 0;
-  for (int i = 1; i < 7; i++) {
-    if (sensorValues[i] >= 2000) {
-      count++;
-    }
-  }
-  
+
 
   float error = 0;
 
@@ -94,7 +103,7 @@ void loop() {
     if (sensorValues[i] < min[i]) {
       error += 0;
     } else {
-      error += weights[i] * (1000.0 * (sensorValues[i] - min[i]) / (max[i]));
+      error += weightingUsed[i] * (1000.0 * (sensorValues[i] - min[i]) / (max[i]));
     }
     // Serial.print(sensorValues[i]);
     // Serial.print("    ");
@@ -116,22 +125,75 @@ void loop() {
 
   // Crosspiece + Phantom crosspiece
 
-  if (count >= 5 && prevCount >= 5 && countBeforeCrossPieceCheck >= 500) {
-    bool crossencountered = true;
-    // if (prevCount != 8) {
-    //   crossencountered = false;
+  int count = 0;
+  if (crossPieceCount == 3) {
+    for (int i = 0; i <= 4; i++) {
+      if (sensorValues[i] >= 2000) {
+        count++;
+      }
+    }
+
+    if (count >= 5 && prevCount >= 5 && countBeforeCrossPieceCheck >= 500) {
+      crossencountered = true;
+    }
+  } else {
+    for (int i = 1; i < 7; i++) {
+      if (sensorValues[i] >= 2000) {
+        count++;
+      }
+    }
+
+    if (count >= 6 && prevCount >= 6 && countBeforeCrossPieceCheck >= 500) {
+      crossencountered = true;
+    }
+  }
+
+
+
     // } 
     if (crossencountered){
       crossPieceCount++;
       //Serial.print(crossPieceCount);
-      //if (crossPieceCount == 1) {
+      if (crossPieceCount == 1) {
         turnCar();
         reset();
+        //weightingUsed = weights1;
+        leftBaseSpeed = 23;
+        rightBaseSpeed = 23;
         crossencountered = false;
-      //}
+        digitalWrite(75, HIGH);
+      } else if (crossPieceCount == 2) {
+        jutForward();
+
+        weightingUsed = weights;
+        crossencountered = false;
+        //digitalWrite(75, LOW);
+        digitalWrite(76, HIGH);
+
+      } else if (crossPieceCount == 3) {
+        analogWrite(PWMLeft, 0);
+        analogWrite(PWMRight, 0);
+        jutForward();
+        
+        
+        weightingUsed = weights2;
+        crossencountered = false;
+
+        digitalWrite(76, LOW);
+        digitalWrite(77, HIGH);
+
+      } else if (crossPieceCount >= 4) {
+        leftBaseSpeed = 0;
+       rightBaseSpeed = 0;
+        crossencountered = false;
+        analogWrite(PWMLeft, 0);
+        analogWrite(PWMRight, 0);
+        digitalWrite(77, LOW);
+        delay(10000);
+      }
 
     }
-  }
+  
 
   if (leftBaseSpeed + PIDsum < 0) {
     leftSpeed = 0;
@@ -143,6 +205,16 @@ void loop() {
     rightSpeed = 0;
   } else {
     rightSpeed = rightBaseSpeed - PIDsum;
+  }
+
+  if (crossPieceCount == 3) {
+      if (leftBaseSpeed + PIDsum < 0) {
+        digitalWrite(Dir_L, HIGH);
+        leftSpeed = -(leftBaseSpeed + PIDsum);
+    } else {
+      digitalWrite(Dir_L, LOW);
+      leftSpeed = leftBaseSpeed + PIDsum;
+    }
   }
   //Serial.println(leftSpeed);
   //Serial.println(rightSpeed);
@@ -173,7 +245,7 @@ void turnCar() {
   //stop for now
   analogWrite(PWMLeft, 0);
   analogWrite(PWMRight, 0);
-  delay(1000); //get rid
+  delay(250); //get rid
 
   //reseting Encoder Counts
   resetEncoderCount_left();
@@ -185,14 +257,15 @@ void turnCar() {
   int getL = getEncoderCount_left();
   int getR = getEncoderCount_right();
 
-  while (getL > -500 && getR < 531) {
-    analogWrite(PWMLeft, 25);
-    analogWrite(PWMRight, 25);
+  while (getL > -450 && getR < 460) {
+    analogWrite(PWMLeft, 50);
+    analogWrite(PWMRight, 50);
     getL = getEncoderCount_left();
     getR = getEncoderCount_right();
-    // Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
+    //Serial.print(getL);Serial.print("\t");Serial.print(getR);Serial.print("\n");
     average();
   }
+  delay(100);
 
   //delay(10000);
 
@@ -202,12 +275,16 @@ void turnCar() {
   //   average();
   // }
   //772 -700 is one full turn
-
-  
-
-
-  
-  
-
   
 }
+
+  void jutForward() {
+    reset();
+
+    digitalWrite(41, HIGH);
+    analogWrite(PWMLeft, 20);
+    analogWrite(PWMRight, 20);
+    delay(1100);
+    
+    digitalWrite(41, LOW);
+  }
